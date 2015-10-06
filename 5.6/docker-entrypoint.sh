@@ -61,7 +61,9 @@ if [ "$1" = 'mysqld' ]; then
 		fi
 
 		if [ "$MYSQL_DATABASE" ]; then
-			echo "CREATE DATABASE IF NOT EXISTS \`$MYSQL_DATABASE\` ;" | "${mysql[@]}"
+			for DATABASE in $MYSQL_DATABASE; do
+				echo "CREATE DATABASE IF NOT EXISTS \`$DATABASE\` ;" | "${mysql[@]}"
+			done
 			mysql+=( "$MYSQL_DATABASE" )
 		fi
 
@@ -69,7 +71,9 @@ if [ "$1" = 'mysqld' ]; then
 			echo "CREATE USER '"$MYSQL_USER"'@'%' IDENTIFIED BY '"$MYSQL_PASSWORD"' ;" | "${mysql[@]}"
 
 			if [ "$MYSQL_DATABASE" ]; then
-				echo "GRANT ALL ON \`"$MYSQL_DATABASE"\`.* TO '"$MYSQL_USER"'@'%' ;" | "${mysql[@]}"
+				for DATABASE in $MYSQL_DATABASE; do
+					echo "GRANT ALL ON \`"$DATABASE"\`.* TO '"$MYSQL_USER"'@'%' ;" | "${mysql[@]}"
+				done
 			fi
 
 			echo 'FLUSH PRIVILEGES ;' | "${mysql[@]}"
