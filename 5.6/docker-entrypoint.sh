@@ -64,7 +64,6 @@ if [ "$1" = 'mysqld' ]; then
 			for DATABASE in $MYSQL_DATABASE; do
 				echo "CREATE DATABASE IF NOT EXISTS \`$DATABASE\` ;" | "${mysql[@]}"
 			done
-			mysql+=( "$MYSQL_DATABASE" )
 		fi
 
 		if [ "$MYSQL_USER" -a "$MYSQL_PASSWORD" ]; then
@@ -97,6 +96,32 @@ if [ "$1" = 'mysqld' ]; then
 		echo
 		echo 'MySQL init process done. Ready for start up.'
 		echo
+	elif [ "$MYSQL_DATABASE" ]; then
+		mysqld --user=mysql --datadir="$DATADIR" --skip-networking &
+		pid="$!"
+
+		mysql=( mysql --protocol=socket -uroot -p"${MYSQL_ROOT_PASSWORD}" )
+
+		for i in {30..0}; do
+			if echo 'SELECT 1' | "${mysql[@]}" &> /dev/null; then
+				break
+			fi
+			echo 'MySQL init process in progress...'
+			sleep 1
+		done
+		if [ "$i" = 0 ]; then
+			echo >&2 'MySQL init process failed.'
+			exit 1
+		fi
+
+	    for DATABASE in $MYSQL_DATABASE; do
+	       echo "CREATE DATABASE IF NOT EXISTS \`$DATABASE\` ;" | "${mysql[@]}"
+	    done
+
+	    if ! kill -s TERM "$pid" || ! wait "$pid"; then
+			echo >&2 'MySQL init process failed.'
+			exit 1
+		fi
 	fi
 
 	chown -R mysql:mysql "$DATADIR"
